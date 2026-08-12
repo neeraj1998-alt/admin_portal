@@ -2,10 +2,10 @@
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
-const databaseConfig = {
+const pool = new Pool({
   host: process.env.DB_HOST || "localhost",
   port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME || "admin_portal_db",
+  database: process.env.DB_NAME || "postgres",
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD || "",
   ssl: process.env.DB_SSL === "true",
@@ -17,7 +17,6 @@ module.exports = {
   databaseConfig,
   isPostgresConfigured,
 };
-
 const { Pool } = require("pg");
 require("dotenv").config();
 
@@ -30,4 +29,3 @@ const pool = new Pool({
 });
 
 module.exports = pool;
-
