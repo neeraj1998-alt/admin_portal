@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
 .env
-backend/.env
+Backend/.env
+
+.gitignore
+Backend/.gitignore
