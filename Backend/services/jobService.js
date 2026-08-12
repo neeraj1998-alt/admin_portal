@@ -34,6 +34,10 @@ const getJobById = async (id) => {
     return job;
 };
 
+const getJobStats = async () => {
+    return await jobRepository.getJobStats();
+};
+
 const createJob = async (jobData) => {
     if (!jobData.title || !jobData.department || !jobData.location || !jobData.employment_type || !jobData.description) {
         const error = new Error("Title, department, location, employment_type, and description are required fields.");
@@ -83,6 +87,7 @@ const deleteJob = async (id) => {
 module.exports = {
     getAllJobs,
     getJobById,
+    getJobStats,
     createJob,
     updateJob,
     changeJobStatus,

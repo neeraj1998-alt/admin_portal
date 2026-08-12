@@ -47,6 +47,28 @@ const findJobById = async (id) => {
 };
 
 /**
+ * Get job statistics breakdown for dashboard / summary counters
+ */
+const getJobStats = async () => {
+    const query = `
+        SELECT 
+            COUNT(*) AS total_jobs,
+            COUNT(*) FILTER (WHERE status = 'ACTIVE') AS active_jobs,
+            COUNT(*) FILTER (WHERE status = 'DRAFT') AS draft_jobs,
+            COUNT(*) FILTER (WHERE status = 'CLOSED') AS closed_jobs
+        FROM jobs
+    `;
+    const result = await pool.query(query);
+    const row = result.rows[0];
+    return {
+        totalJobs: parseInt(row.total_jobs, 10),
+        activeJobs: parseInt(row.active_jobs, 10),
+        draftJobs: parseInt(row.draft_jobs, 10),
+        closedJobs: parseInt(row.closed_jobs, 10)
+    };
+};
+
+/**
  * Create a new job
  */
 const createJob = async (jobData) => {
@@ -143,6 +165,7 @@ const deleteJob = async (id) => {
 module.exports = {
     findAllJobs,
     findJobById,
+    getJobStats,
     createJob,
     updateJob,
     updateJobStatus,
