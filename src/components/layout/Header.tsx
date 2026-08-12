@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Breadcrumb } from '../common/Breadcrumb';
-import { Menu, LogOut, User as UserIcon, Settings, ChevronDown } from 'lucide-react';
+import { Menu, LogOut, User as UserIcon, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -160,31 +160,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                 <span>Administrator Profile</span>
               </button>
 
-              {/* Profile & Settings Link */}
-              <button
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  navigate('/settings');
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  fontSize: '0.8125rem',
-                  color: 'var(--text-secondary)',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'background-color var(--transition-fast)',
-                  textAlign: 'left',
-                  width: '100%',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <Settings size={14} />
-                <span>Profile & Settings</span>
-              </button>
+
 
               <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', margin: '4px 0' }} />
 
