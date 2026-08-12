@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
@@ -17,7 +17,7 @@ module.exports = {
   databaseConfig,
   isPostgresConfigured,
 };
-=======
+
 const { Pool } = require("pg");
 require("dotenv").config();
 
@@ -30,4 +30,4 @@ const pool = new Pool({
 });
 
 module.exports = pool;
->>>>>>> origin/Shreya
+
