@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const healthRoutes = require("./routes/health.routes");
-const adminAuthRoutes = require("./routes/adminAuth.routes");
+const authRoutes = require("./routes/authRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const errorMiddleware = require("./middleware/errorMiddleware");
 
 require("dotenv").config();
 
@@ -12,7 +14,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", healthRoutes);
-app.use("/api", adminAuthRoutes);
+app.use("/api", authRoutes);
+app.use("/api", dashboardRoutes);
 
 app.use((req, res, next) => {
   const error = new Error(`Route not found: ${req.originalUrl}`);
@@ -20,14 +23,6 @@ app.use((req, res, next) => {
   next(error);
 });
 
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-
-  res.status(statusCode).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
-});
+app.use(errorMiddleware);
 
 module.exports = app;
