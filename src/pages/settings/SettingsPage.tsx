@@ -122,10 +122,10 @@ export const SettingsPage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-          System Administration & Settings
+          Profile and Settings
         </h1>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-          Manage admin profile, recruitment preferences, security parameters, and notification alerts.
+          Manage administrator profile, recruitment preferences, security parameters, and notification alerts.
         </p>
       </div>
 

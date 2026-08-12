@@ -26,9 +26,13 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
       accumulatedPath += `/${segment}`;
       if (segment === 'dashboard') return;
 
-      const formattedLabel = segment
+      let formattedLabel = segment
         .replace(/-/g, ' ')
         .replace(/\b\w/g, (char) => char.toUpperCase());
+
+      if (segment === 'settings') {
+        formattedLabel = 'Profile and Settings';
+      }
 
       breadcrumbList.push({
         label: formattedLabel,

@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
-  UserCheck,
   ShieldCheck,
   FileText,
   Settings,
@@ -30,10 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { label: 'Job Openings', path: '/jobs', icon: <Briefcase size={20} /> },
     { label: 'Applications', path: '/applications', icon: <Users size={20} /> },
-    { label: 'Candidates', path: '/candidates', icon: <UserCheck size={20} /> },
     { label: 'Resumes', path: '/resumes', icon: <FileText size={20} /> },
     { label: 'Admin Users', path: '/admin-users', icon: <ShieldCheck size={20} /> },
-    { label: 'Settings', path: '/settings', icon: <Settings size={20} /> },
+    { label: 'Profile and Settings', path: '/settings', icon: <Settings size={20} /> },
   ];
 
   const sidebarWidth = isCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)';

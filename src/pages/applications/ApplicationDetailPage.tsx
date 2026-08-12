@@ -16,7 +16,6 @@ import {
   FileText,
   Download,
   Send,
-  UserCheck,
   Award,
 } from 'lucide-react';
 import type { ApplicationStageStatus, ResumeAttachment } from '../../types/database';
@@ -98,17 +97,6 @@ export const ApplicationDetailPage: React.FC = () => {
         </Button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {candidate && (
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<UserCheck size={16} />}
-              onClick={() => navigate(`/candidates/${candidate.id}`)}
-            >
-              View Full Candidate Profile
-            </Button>
-          )}
-
           <Button
             variant="outline"
             size="sm"

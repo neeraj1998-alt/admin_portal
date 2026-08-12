@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
@@ -16,7 +15,6 @@ import {
 import type { ResumeAttachment } from '../../types/database';
 
 export const ResumesPage: React.FC = () => {
-  const navigate = useNavigate();
   const { resumes } = useMockData();
   const { showToast } = useToast();
 
@@ -82,8 +80,9 @@ export const ResumesPage: React.FC = () => {
       header: 'Candidate Name',
       render: (r) => (
         <span
-          onClick={() => navigate(`/candidates/${r.candidateId}`)}
+          onClick={() => setSelectedResume(r)}
           style={{ fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer' }}
+          title="Preview Resume"
         >
           {r.candidateName || 'N/A'}
         </span>
@@ -140,7 +139,7 @@ export const ResumesPage: React.FC = () => {
             Resume & Document Repository
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-            Central database file attachments and candidate CV records (post_type = "attachment").
+            Central database file attachments and candidate CV records.
           </p>
         </div>
       </div>

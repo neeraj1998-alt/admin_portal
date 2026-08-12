@@ -16,6 +16,7 @@ import {
   Eye,
   Trash2,
   Users,
+  IndianRupee,
 } from 'lucide-react';
 import type { JobOpening, WPPostStatus } from '../../types/database';
 
@@ -55,16 +56,18 @@ export const JobOpeningsPage: React.FC = () => {
 
   // Check state passed from navigation (e.g. create button from dashboard)
   useEffect(() => {
-    if (location.state && (location.state as { openCreateModal?: boolean }).openCreateModal) {
+    const locState = location.state as { openCreateModal?: boolean; viewJobId?: number } | null;
+    if (locState?.openCreateModal) {
       handleOpenCreateModal();
-      window.history.replaceState({}, document.title);
+      navigate(location.pathname, { replace: true, state: {} });
+    } else if (locState?.viewJobId) {
+      const targetJob = jobs.find((j) => j.id === locState.viewJobId);
+      if (targetJob) {
+        setViewingJob(targetJob);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     }
-    if (location.state && (location.state as { viewJobId?: number }).viewJobId) {
-      const targetJob = jobs.find((j) => j.id === (location.state as { viewJobId: number }).viewJobId);
-      if (targetJob) setViewingJob(targetJob);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, jobs]);
+  }, [location.state, jobs, navigate, location.pathname]);
 
   // Departments list for filtering
   const departments = Array.from(new Set(jobs.map((j) => j.department)));
@@ -327,7 +330,7 @@ export const JobOpeningsPage: React.FC = () => {
             Job Openings Management
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-            Manage active vacancies, draft postings, and candidate application quotas (post_type = "awsm_job_openings").
+            Manage active vacancies, draft postings, and candidate application quotas.
           </p>
         </div>
 
@@ -510,7 +513,8 @@ export const JobOpeningsPage: React.FC = () => {
 
             <Input
               label="Salary / Stipend"
-              placeholder="e.g. ₹12,00,000 - ₹18,00,000 P.A."
+              placeholder="e.g. 12,00,000 - 18,00,000 P.A."
+              icon={<IndianRupee size={15} />}
               value={formData.salary}
               onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
             />
@@ -559,7 +563,7 @@ export const JobOpeningsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
             <Input
               label="Required Skills (Comma separated)"
               placeholder="e.g. React, TypeScript, Node.js"
@@ -573,28 +577,6 @@ export const JobOpeningsPage: React.FC = () => {
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
             />
-
-            <div>
-              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
-                Initial Publication Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as WPPostStatus })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '0.875rem',
-                  backgroundColor: '#ffffff',
-                }}
-              >
-                <option value="publish">Published</option>
-                <option value="draft">Draft</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
           </div>
         </form>
       </Modal>

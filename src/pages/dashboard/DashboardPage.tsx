@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
+import { Input } from '../../components/common/Input';
+import { Modal } from '../../components/common/Modal';
 import { Table, type Column } from '../../components/common/Table';
 import { useMockData } from '../../services/mockDataService';
+import { useToast } from '../../components/common/Toast';
 import { ResumeViewerModal } from '../../components/common/ResumeViewerModal';
 import {
   Briefcase,
@@ -17,13 +20,93 @@ import {
   FileText,
   Clock,
   Sparkles,
+  IndianRupee,
 } from 'lucide-react';
-import type { JobOpening, JobApplication, ResumeAttachment } from '../../types/database';
+import type { JobOpening, JobApplication, ResumeAttachment, WPPostStatus } from '../../types/database';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { jobs, applications, stats, resumes } = useMockData();
+  const { jobs, applications, stats, resumes, service } = useMockData();
+  const { showToast } = useToast();
   const [selectedResume, setSelectedResume] = useState<ResumeAttachment | null>(null);
+
+  // Create Job Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    department: 'Engineering',
+    location: 'Mumbai, MH (Hybrid)',
+    employmentType: 'Full-time' as JobOpening['employmentType'],
+    experience: '3 - 5 Years',
+    salary: '12,00,000 - 18,00,000 P.A.',
+    content: '',
+    requirements: '',
+    skills: 'React, TypeScript, Node.js',
+    deadline: '2026-10-31',
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const handleOpenCreateModal = () => {
+    setFormData({
+      title: '',
+      department: 'Engineering',
+      location: 'Mumbai, MH (Hybrid)',
+      employmentType: 'Full-time',
+      experience: '3 - 5 Years',
+      salary: '12,00,000 - 18,00,000 P.A.',
+      content: '',
+      requirements: '',
+      skills: 'React, TypeScript, Node.js',
+      deadline: '2026-10-31',
+    });
+    setFormErrors({});
+    setIsCreateModalOpen(true);
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.title.trim()) errors.title = 'Job Title is required';
+    if (!formData.department.trim()) errors.department = 'Department is required';
+    if (!formData.location.trim()) errors.location = 'Location is required';
+    if (!formData.content.trim()) errors.content = 'Job description is required';
+    if (!formData.requirements.trim()) errors.requirements = 'Requirements are required';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSaveJob = (status: WPPostStatus = 'publish') => {
+    if (!validateForm()) return;
+
+    const skillsArray = formData.skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    service.createJob({
+      title: formData.title,
+      department: formData.department,
+      location: formData.location,
+      employmentType: formData.employmentType,
+      experience: formData.experience,
+      salary: formData.salary,
+      content: formData.content,
+      requirements: formData.requirements,
+      skills: skillsArray,
+      deadline: formData.deadline,
+      status,
+      authorId: 1,
+      authorName: 'MHTECHIN HR Admin',
+    });
+
+    showToast(
+      status === 'publish' ? 'Job Published' : 'Draft Saved',
+      `"${formData.title}" was ${status === 'publish' ? 'published' : 'saved as draft'} successfully.`,
+      'success'
+    );
+
+    setIsCreateModalOpen(false);
+  };
 
   const recentJobs = jobs.slice(0, 5);
   const recentApplications = applications.slice(0, 5);
@@ -68,7 +151,7 @@ export const DashboardPage: React.FC = () => {
             fontSize: '0.75rem',
           }}
         >
-          {job.applicationCount || 0} candidates
+          {job.applicationCount || 0} applicants
         </span>
       ),
     },
@@ -202,15 +285,15 @@ export const DashboardPage: React.FC = () => {
           <Button
             variant="primary"
             icon={<Plus size={16} />}
-            onClick={() => navigate('/jobs', { state: { openCreateModal: true } })}
+            onClick={handleOpenCreateModal}
           >
             Create Job
           </Button>
           <Button variant="outline" icon={<Users size={16} />} onClick={() => navigate('/applications')}>
             View Applications
           </Button>
-          <Button variant="outline" icon={<Briefcase size={16} />} onClick={() => navigate('/candidates')}>
-            View Candidates
+          <Button variant="outline" icon={<FileText size={16} />} onClick={() => navigate('/resumes')}>
+            View Resumes
           </Button>
         </div>
       </div>
@@ -397,7 +480,7 @@ export const DashboardPage: React.FC = () => {
 
         {/* Recent Applications */}
         <Card
-          title="Recent Candidate Applications"
+          title="Recent Applications"
           subtitle="Latest candidate submissions across active vacancies"
           action={
             <Button
@@ -426,6 +509,175 @@ export const DashboardPage: React.FC = () => {
         onClose={() => setSelectedResume(null)}
         resume={selectedResume}
       />
+
+      {/* CREATE JOB MODAL */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Post New Job Opening"
+        subtitle="Fill in job details, qualifications, and publication status."
+        maxWidth="lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="secondary" onClick={() => handleSaveJob('draft')}>
+              Save as Draft
+            </Button>
+            <Button variant="primary" onClick={() => handleSaveJob('publish')}>
+              Publish Job
+            </Button>
+          </>
+        }
+      >
+        <form style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} onSubmit={(e) => e.preventDefault()}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <Input
+              label="Job Title *"
+              placeholder="e.g. Senior Full Stack Developer"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              error={formErrors.title}
+            />
+
+            <div>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+                Department / Category *
+              </label>
+              <input
+                type="text"
+                list="dept-options-dash"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.875rem',
+                }}
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              />
+              <datalist id="dept-options-dash">
+                <option value="Engineering" />
+                <option value="Database & Infrastructure" />
+                <option value="Design" />
+                <option value="Data Science" />
+                <option value="Marketing" />
+                <option value="HR & Admin" />
+              </datalist>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <Input
+              label="Location *"
+              placeholder="e.g. Mumbai, MH (Hybrid)"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              error={formErrors.location}
+            />
+
+            <div>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+                Employment Type
+              </label>
+              <select
+                value={formData.employmentType}
+                onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as JobOpening['employmentType'] })}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.875rem',
+                  backgroundColor: '#ffffff',
+                }}
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Internship">Internship</option>
+                <option value="Remote">Remote</option>
+              </select>
+            </div>
+
+            <Input
+              label="Experience Requirement"
+              placeholder="e.g. 3 - 5 Years"
+              value={formData.experience}
+              onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+            />
+
+            <Input
+              label="Salary / Stipend"
+              placeholder="e.g. 12,00,000 - 18,00,000 P.A."
+              icon={<IndianRupee size={15} />}
+              value={formData.salary}
+              onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+              Job Description *
+            </label>
+            <textarea
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: `1px solid ${formErrors.content ? '#ef4444' : 'var(--border-color)'}`,
+                fontSize: '0.875rem',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+              placeholder="Detailed description of job roles and responsibilities..."
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            />
+            {formErrors.content && <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{formErrors.content}</span>}
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>
+              Requirements & Qualifications *
+            </label>
+            <textarea
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: `1px solid ${formErrors.requirements ? '#ef4444' : 'var(--border-color)'}`,
+                fontSize: '0.875rem',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+              placeholder="• Key qualification bullet points..."
+              value={formData.requirements}
+              onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <Input
+              label="Required Skills (Comma separated)"
+              placeholder="e.g. React, TypeScript, Node.js"
+              value={formData.skills}
+              onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+            />
+
+            <Input
+              type="date"
+              label="Application Deadline"
+              value={formData.deadline}
+              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+            />
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

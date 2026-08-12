@@ -7,8 +7,6 @@ import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { JobOpeningsPage } from '../pages/jobs/JobOpeningsPage';
 import { JobApplicationsPage } from '../pages/applications/JobApplicationsPage';
 import { ApplicationDetailPage } from '../pages/applications/ApplicationDetailPage';
-import { CandidatesPage } from '../pages/candidates/CandidatesPage';
-import { CandidateDetailPage } from '../pages/candidates/CandidateDetailPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { ResumesPage } from '../pages/resumes/ResumesPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
@@ -66,8 +64,6 @@ export const AppRoutes: React.FC = () => {
         <Route path="jobs" element={<JobOpeningsPage />} />
         <Route path="applications" element={<JobApplicationsPage />} />
         <Route path="applications/:id" element={<ApplicationDetailPage />} />
-        <Route path="candidates" element={<CandidatesPage />} />
-        <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="admin-users" element={<AdminUsersPage />} />
         <Route path="resumes" element={<ResumesPage />} />
         <Route path="settings" element={<SettingsPage />} />

@@ -70,7 +70,7 @@ export const ResumeViewerModal: React.FC<ResumeViewerModalProps> = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
             gap: '12px',
             padding: '14px',
             backgroundColor: '#f8fafc',
@@ -78,41 +78,149 @@ export const ResumeViewerModal: React.FC<ResumeViewerModalProps> = ({
             border: '1px solid var(--border-color)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <User size={16} style={{ color: 'var(--brand-primary)' }} />
-            <div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Candidate</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--brand-light)',
+                color: 'var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <User size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.2 }}>Candidate</p>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  marginTop: '2px',
+                  lineHeight: 1.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title={resume.candidateName || 'N/A'}
+              >
                 {resume.candidateName || 'N/A'}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Briefcase size={16} style={{ color: 'var(--brand-primary)' }} />
-            <div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Job Applied</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }} className="truncate">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--brand-light)',
+                color: 'var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Briefcase size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.2 }}>Job Applied</p>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  marginTop: '2px',
+                  lineHeight: 1.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title={resume.jobTitle || 'N/A'}
+              >
                 {resume.jobTitle || 'N/A'}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={16} style={{ color: 'var(--brand-primary)' }} />
-            <div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Uploaded Date</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--brand-light)',
+                color: 'var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Calendar size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.2 }}>Uploaded Date</p>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  marginTop: '2px',
+                  lineHeight: 1.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title={resume.uploadDate}
+              >
                 {resume.uploadDate}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={16} style={{ color: 'var(--brand-primary)' }} />
-            <div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>File Info</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--brand-light)',
+                color: 'var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <FileText size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.2 }}>File Info</p>
+              <p
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  marginTop: '2px',
+                  lineHeight: 1.3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title={`PDF (${resume.fileSize || '1.8 MB'})`}
+              >
                 PDF ({resume.fileSize || '1.8 MB'})
               </p>
             </div>

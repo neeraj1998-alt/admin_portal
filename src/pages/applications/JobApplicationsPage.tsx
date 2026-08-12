@@ -30,11 +30,12 @@ export const JobApplicationsPage: React.FC = () => {
 
   // Check state from navigation (e.g. from Jobs page or Dashboard)
   useEffect(() => {
-    if (location.state && (location.state as { jobId?: number }).jobId) {
-      setJobFilter(String((location.state as { jobId: number }).jobId));
-      window.history.replaceState({}, document.title);
+    const locState = location.state as { jobId?: number } | null;
+    if (locState?.jobId) {
+      setJobFilter(String(locState.jobId));
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, [location.state, navigate, location.pathname]);
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
@@ -182,7 +183,7 @@ export const JobApplicationsPage: React.FC = () => {
             Job Applications Directory
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-            Manage candidate applications, recruitment stages, and application records (post_type = "awsm_job_application").
+            Manage candidate applications, recruitment stages, and application records.
           </p>
         </div>
       </div>

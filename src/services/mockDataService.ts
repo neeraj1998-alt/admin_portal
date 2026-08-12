@@ -711,16 +711,7 @@ export const mockDataService = new MockDataStore();
 
 // React hook for consuming state Reactively
 export function useMockData() {
-  const [, setTick] = useState(0);
-
-  useEffect(() => {
-    const unsubscribe = mockDataService.subscribe(() => {
-      setTick((prev) => prev + 1);
-    });
-    return unsubscribe;
-  }, []);
-
-  return {
+  const [data, setData] = useState(() => ({
     jobs: mockDataService.getJobs(),
     applications: mockDataService.getApplications(),
     candidates: mockDataService.getCandidates(),
@@ -729,5 +720,23 @@ export function useMockData() {
     settings: mockDataService.getSettings(),
     stats: mockDataService.getDashboardStats(),
     service: mockDataService,
-  };
+  }));
+
+  useEffect(() => {
+    const unsubscribe = mockDataService.subscribe(() => {
+      setData({
+        jobs: mockDataService.getJobs(),
+        applications: mockDataService.getApplications(),
+        candidates: mockDataService.getCandidates(),
+        resumes: mockDataService.getResumes(),
+        adminUsers: mockDataService.getAdminUsers(),
+        settings: mockDataService.getSettings(),
+        stats: mockDataService.getDashboardStats(),
+        service: mockDataService,
+      });
+    });
+    return unsubscribe;
+  }, []);
+
+  return data;
 }
