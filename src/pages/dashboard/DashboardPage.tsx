@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -6,7 +6,12 @@ import { Badge } from '../../components/common/Badge';
 import { Input } from '../../components/common/Input';
 import { Modal } from '../../components/common/Modal';
 import { Table, type Column } from '../../components/common/Table';
-import { useMockData } from '../../services/mockDataService';
+import {
+  dashboardApiService,
+  jobApiService,
+  applicationApiService,
+  documentApiService,
+} from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import { ResumeViewerModal } from '../../components/common/ResumeViewerModal';
 import {
@@ -21,13 +26,29 @@ import {
   Clock,
   Sparkles,
   IndianRupee,
+  RefreshCw,
 } from 'lucide-react';
 import type { JobOpening, JobApplication, ResumeAttachment, WPPostStatus } from '../../types/database';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { jobs, applications, stats, resumes, service } = useMockData();
   const { showToast } = useToast();
+
+  const [stats, setStats] = useState({
+    totalJobs: 0,
+    activeJobs: 0,
+    draftJobs: 0,
+    closedJobs: 0,
+    totalApplications: 0,
+    newApplications: 0,
+    shortlistedCandidates: 0,
+    selectedCandidates: 0,
+  });
+  const [recentJobs, setRecentJobs] = useState<JobOpening[]>([]);
+  const [recentApplications, setRecentApplications] = useState<JobApplication[]>([]);
+  const [resumes, setResumes] = useState<ResumeAttachment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedResume, setSelectedResume] = useState<ResumeAttachment | null>(null);
 
   // Create Job Modal state
@@ -45,6 +66,42 @@ export const DashboardPage: React.FC = () => {
     deadline: '2026-10-31',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [statsData, jobsData, appsData, resumesData] = await Promise.allSettled([
+        dashboardApiService.getStats(),
+        jobApiService.getJobs(),
+        applicationApiService.getApplications(),
+        documentApiService.getAllDocuments(),
+      ]);
+
+      if (statsData.status === 'fulfilled') {
+        setStats(statsData.value);
+      }
+
+      if (jobsData.status === 'fulfilled') {
+        setRecentJobs(jobsData.value.slice(0, 5));
+      }
+
+      if (appsData.status === 'fulfilled') {
+        setRecentApplications(appsData.value.slice(0, 5));
+      }
+
+      if (resumesData.status === 'fulfilled') {
+        setResumes(resumesData.value);
+      }
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch dashboard data.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleOpenCreateModal = () => {
     setFormData({
@@ -75,7 +132,7 @@ export const DashboardPage: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSaveJob = (status: WPPostStatus = 'publish') => {
+  const handleSaveJob = async (status: WPPostStatus = 'publish') => {
     if (!validateForm()) return;
 
     const skillsArray = formData.skills
@@ -83,33 +140,36 @@ export const DashboardPage: React.FC = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    service.createJob({
-      title: formData.title,
-      department: formData.department,
-      location: formData.location,
-      employmentType: formData.employmentType,
-      experience: formData.experience,
-      salary: formData.salary,
-      content: formData.content,
-      requirements: formData.requirements,
-      skills: skillsArray,
-      deadline: formData.deadline,
-      status,
-      authorId: 1,
-      authorName: 'MHTECHIN HR Admin',
-    });
+    setIsSaving(true);
+    try {
+      await jobApiService.createJob({
+        title: formData.title,
+        department: formData.department,
+        location: formData.location,
+        employmentType: formData.employmentType,
+        experience: formData.experience,
+        salary: formData.salary,
+        content: formData.content,
+        requirements: formData.requirements,
+        skills: skillsArray,
+        deadline: formData.deadline,
+        status,
+      });
 
-    showToast(
-      status === 'publish' ? 'Job Published' : 'Draft Saved',
-      `"${formData.title}" was ${status === 'publish' ? 'published' : 'saved as draft'} successfully.`,
-      'success'
-    );
+      showToast(
+        status === 'publish' ? 'Job Published' : 'Draft Saved',
+        `"${formData.title}" was ${status === 'publish' ? 'published' : 'saved as draft'} successfully.`,
+        'success'
+      );
 
-    setIsCreateModalOpen(false);
+      setIsCreateModalOpen(false);
+      fetchDashboardData();
+    } catch (err: any) {
+      showToast('Creation Failed', err?.message || 'Failed to create job opening.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  const recentJobs = jobs.slice(0, 5);
-  const recentApplications = applications.slice(0, 5);
 
   const jobColumns: Column<JobOpening>[] = [
     {
@@ -263,8 +323,8 @@ export const DashboardPage: React.FC = () => {
               style={{
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: 'var(--brand-primary)',
-                backgroundColor: 'var(--brand-light)',
+                color: '#15803d',
+                backgroundColor: '#dcfce7',
                 padding: '2px 8px',
                 borderRadius: 'var(--radius-full)',
                 display: 'inline-flex',
@@ -272,7 +332,7 @@ export const DashboardPage: React.FC = () => {
                 gap: '4px',
               }}
             >
-              <Sparkles size={12} /> Live Frontend Mock
+              <Sparkles size={12} /> Connected Database
             </span>
           </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
@@ -282,6 +342,14 @@ export const DashboardPage: React.FC = () => {
 
         {/* Quick Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <Button
+            variant="ghost"
+            icon={<RefreshCw size={16} className={isLoading ? 'spin' : ''} />}
+            onClick={fetchDashboardData}
+            title="Refresh Data"
+          >
+            Refresh
+          </Button>
           <Button
             variant="primary"
             icon={<Plus size={16} />}
@@ -519,13 +587,13 @@ export const DashboardPage: React.FC = () => {
         maxWidth="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button variant="secondary" onClick={() => handleSaveJob('draft')}>
+            <Button variant="secondary" onClick={() => handleSaveJob('draft')} isLoading={isSaving} disabled={isSaving}>
               Save as Draft
             </Button>
-            <Button variant="primary" onClick={() => handleSaveJob('publish')}>
+            <Button variant="primary" onClick={() => handleSaveJob('publish')} isLoading={isSaving} disabled={isSaving}>
               Publish Job
             </Button>
           </>

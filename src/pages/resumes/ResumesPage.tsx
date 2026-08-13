@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Table, type Column } from '../../components/common/Table';
-import { useMockData } from '../../services/mockDataService';
+import { documentApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import { ResumeViewerModal } from '../../components/common/ResumeViewerModal';
 import {
@@ -11,15 +11,33 @@ import {
   Search,
   Download,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
 import type { ResumeAttachment } from '../../types/database';
 
 export const ResumesPage: React.FC = () => {
-  const { resumes } = useMockData();
   const { showToast } = useToast();
 
+  const [resumes, setResumes] = useState<ResumeAttachment[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResume, setSelectedResume] = useState<ResumeAttachment | null>(null);
+
+  const fetchResumes = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await documentApiService.getAllDocuments();
+      setResumes(data);
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch resume documents.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchResumes();
+  }, [fetchResumes]);
 
   const filteredResumes = resumes.filter((r) => {
     const q = searchQuery.toLowerCase();
@@ -31,17 +49,7 @@ export const ResumesPage: React.FC = () => {
   });
 
   const handleDownload = (r: ResumeAttachment) => {
-    const content = r.contentSnippet || `Resume Document: ${r.fileName}\nCandidate: ${r.candidateName}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = r.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
+    window.open(r.fileUrl, '_blank');
     showToast('Download Started', `Downloading ${r.fileName}`, 'success');
   };
 
@@ -142,6 +150,15 @@ export const ResumesPage: React.FC = () => {
             Central database file attachments and candidate CV records.
           </p>
         </div>
+
+        <Button
+          variant="ghost"
+          icon={<RefreshCw size={16} className={isLoading ? 'spin' : ''} />}
+          onClick={fetchResumes}
+          title="Refresh Documents"
+        >
+          Refresh
+        </Button>
       </div>
 
       {/* Search Bar */}
