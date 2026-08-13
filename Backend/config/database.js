@@ -9,7 +9,7 @@ const pool = new Pool({
   user: process.env.DB_USER || "postgres",
   password: process.env.DB_PASSWORD || "",
   ssl: process.env.DB_SSL === "true",
-};
+});
 
 const isPostgresConfigured = Boolean(process.env.DB_HOST && process.env.DB_NAME && process.env.DB_USER);
 
