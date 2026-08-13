@@ -115,7 +115,7 @@ export const LoginPage: React.FC = () => {
         {/* Login Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* Mock Auth Context Info Box */}
+          {/* Auth Connection Info Box */}
           <div
             style={{
               display: 'flex',
@@ -131,8 +131,8 @@ export const LoginPage: React.FC = () => {
           >
             <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <strong style={{ display: 'block', marginBottom: '2px' }}>Authentication Abstraction</strong>
-              <span>Pre-filled with default demo admin credentials. Real DB login API can be integrated when provided.</span>
+              <strong style={{ display: 'block', marginBottom: '2px' }}>Recruitment Portal Authentication</strong>
+              <span>Enter your administrator credentials to access the recruitment portal database.</span>
             </div>
           </div>
 

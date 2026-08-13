@@ -1,6 +1,4 @@
-// TEMPORARY MOCK DATA ONLY
-// This repository is intentionally isolated so it can be replaced later with PostgreSQL
-// queries without changing the controller/service architecture.
+const pool = require("../config/database");
 
 const mockJobs = [
   {
@@ -146,23 +144,116 @@ const mockApplications = [
   { id: 10, job_id: 1, job_title: "AWS Cloud Intern", candidate_name: "Meera Iyer", status: "SHORTLISTED", applied_at: "2026-08-06T15:05:00.000Z" },
 ];
 
-const getJobs = async () => [...mockJobs];
+const getJobs = async () => {
+  try {
+    const result = await pool.query("SELECT * FROM jobs ORDER BY created_at DESC");
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getJobs fallback:", error.message);
+  }
+  return [...mockJobs];
+};
 
-const getApplications = async () => [...mockApplications];
+const getApplications = async () => {
+  try {
+    const query = `
+      SELECT
+        a.id,
+        a.job_id,
+        a.candidate_id,
+        a.status,
+        a.application_date AS applied_at,
+        j.title AS job_title,
+        CONCAT(c.first_name, ' ', COALESCE(c.last_name, '')) AS candidate_name
+      FROM applications a
+      JOIN candidates c ON a.candidate_id = c.id
+      JOIN jobs j ON a.job_id = j.id
+      ORDER BY a.application_date DESC
+    `;
+    const result = await pool.query(query);
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getApplications fallback:", error.message);
+  }
+  return [...mockApplications];
+};
 
 const getRecentJobs = async (limit = 5) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        j.*,
+        COUNT(a.id)::int AS total_applications
+      FROM jobs j
+      LEFT JOIN applications a ON j.id = a.job_id
+      GROUP BY j.id
+      ORDER BY j.created_at DESC 
+      LIMIT $1
+      `,
+      [limit]
+    );
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getRecentJobs fallback:", error.message);
+  }
+
   return [...mockJobs]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, limit);
 };
 
 const getRecentApplications = async (limit = 5) => {
+  try {
+    const query = `
+      SELECT
+        a.id,
+        a.job_id,
+        a.candidate_id,
+        a.status,
+        a.application_date AS applied_at,
+        j.title AS job_title,
+        CONCAT(c.first_name, ' ', COALESCE(c.last_name, '')) AS candidate_name
+      FROM applications a
+      JOIN candidates c ON a.candidate_id = c.id
+      JOIN jobs j ON a.job_id = j.id
+      ORDER BY a.application_date DESC
+      LIMIT $1
+    `;
+    const result = await pool.query(query, [limit]);
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getRecentApplications fallback:", error.message);
+  }
+
   return [...mockApplications]
     .sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at))
     .slice(0, limit);
 };
 
 const getApplicationStatusDistribution = async () => {
+  try {
+    const query = `
+      SELECT status, COUNT(*)::int AS count
+      FROM applications
+      GROUP BY status
+    `;
+    const result = await pool.query(query);
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getApplicationStatusDistribution fallback:", error.message);
+  }
+
   return Object.entries(
     mockApplications.reduce((acc, application) => {
       const status = application.status || "UNKNOWN";
@@ -173,6 +264,25 @@ const getApplicationStatusDistribution = async () => {
 };
 
 const getApplicationsByJob = async () => {
+  try {
+    const query = `
+      SELECT
+        j.id AS job_id,
+        j.title AS job_title,
+        COUNT(a.id)::int AS count
+      FROM jobs j
+      LEFT JOIN applications a ON j.id = a.job_id
+      GROUP BY j.id, j.title
+      ORDER BY count DESC
+    `;
+    const result = await pool.query(query);
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.warn("PostgreSQL getApplicationsByJob fallback:", error.message);
+  }
+
   const grouped = mockApplications.reduce((acc, application) => {
     const key = application.job_id;
 

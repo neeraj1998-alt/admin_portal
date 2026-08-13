@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -6,7 +6,7 @@ import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { Table, type Column } from '../../components/common/Table';
-import { useMockData } from '../../services/mockDataService';
+import { jobApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import {
   Plus,
@@ -17,14 +17,18 @@ import {
   Trash2,
   Users,
   IndianRupee,
+  RefreshCw,
 } from 'lucide-react';
 import type { JobOpening, WPPostStatus } from '../../types/database';
 
 export const JobOpeningsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { jobs, service } = useMockData();
   const { showToast } = useToast();
+
+  const [jobs, setJobs] = useState<JobOpening[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,13 +58,29 @@ export const JobOpeningsPage: React.FC = () => {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await jobApiService.getJobs();
+      setJobs(data);
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch job openings.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
   // Check state passed from navigation (e.g. create button from dashboard)
   useEffect(() => {
     const locState = location.state as { openCreateModal?: boolean; viewJobId?: number } | null;
     if (locState?.openCreateModal) {
       handleOpenCreateModal();
       navigate(location.pathname, { replace: true, state: {} });
-    } else if (locState?.viewJobId) {
+    } else if (locState?.viewJobId && jobs.length > 0) {
       const targetJob = jobs.find((j) => j.id === locState.viewJobId);
       if (targetJob) {
         setViewingJob(targetJob);
@@ -137,7 +157,7 @@ export const JobOpeningsPage: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSaveJob = (targetStatus?: WPPostStatus) => {
+  const handleSaveJob = async (targetStatus?: WPPostStatus) => {
     if (!validateForm()) return;
 
     const finalStatus = targetStatus || formData.status;
@@ -146,61 +166,77 @@ export const JobOpeningsPage: React.FC = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (editingJob) {
-      service.updateJob(editingJob.id, {
-        title: formData.title,
-        department: formData.department,
-        location: formData.location,
-        employmentType: formData.employmentType,
-        experience: formData.experience,
-        salary: formData.salary,
-        content: formData.content,
-        requirements: formData.requirements,
-        skills: skillsArray,
-        deadline: formData.deadline,
-        status: finalStatus,
-      });
-      showToast('Job Updated', `"${formData.title}" updated successfully.`, 'success');
-    } else {
-      service.createJob({
-        title: formData.title,
-        department: formData.department,
-        location: formData.location,
-        employmentType: formData.employmentType,
-        experience: formData.experience,
-        salary: formData.salary,
-        content: formData.content,
-        requirements: formData.requirements,
-        skills: skillsArray,
-        deadline: formData.deadline,
-        status: finalStatus,
-        authorId: 1,
-        authorName: 'MHTECHIN HR Admin',
-      });
-      showToast('Job Created', `New vacancy "${formData.title}" created successfully.`, 'success');
+    setIsSaving(true);
+    try {
+      if (editingJob) {
+        await jobApiService.updateJob(editingJob.id, {
+          title: formData.title,
+          department: formData.department,
+          location: formData.location,
+          employmentType: formData.employmentType,
+          experience: formData.experience,
+          salary: formData.salary,
+          content: formData.content,
+          requirements: formData.requirements,
+          skills: skillsArray,
+          deadline: formData.deadline,
+          status: finalStatus,
+        });
+        showToast('Job Updated', `"${formData.title}" updated successfully.`, 'success');
+      } else {
+        await jobApiService.createJob({
+          title: formData.title,
+          department: formData.department,
+          location: formData.location,
+          employmentType: formData.employmentType,
+          experience: formData.experience,
+          salary: formData.salary,
+          content: formData.content,
+          requirements: formData.requirements,
+          skills: skillsArray,
+          deadline: formData.deadline,
+          status: finalStatus,
+        });
+        showToast('Job Created', `New vacancy "${formData.title}" created successfully.`, 'success');
+      }
+
+      setIsFormModalOpen(false);
+      fetchJobs();
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Operation failed. Please try again.', 'error');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsFormModalOpen(false);
   };
 
-  const handleStatusChange = (job: JobOpening, newStatus: WPPostStatus) => {
-    service.updateJobStatus(job.id, newStatus);
-    const labelMap: Record<WPPostStatus, string> = {
-      publish: 'Published',
-      draft: 'Saved as Draft',
-      closed: 'Closed',
-      inherit: 'Inherited',
-      trash: 'Archived',
-    };
-    showToast('Status Updated', `Job status set to ${labelMap[newStatus]}`, 'info');
+  const handleStatusChange = async (job: JobOpening, newStatus: WPPostStatus) => {
+    try {
+      await jobApiService.updateJobStatus(job.id, newStatus);
+      const labelMap: Record<WPPostStatus, string> = {
+        publish: 'Published',
+        draft: 'Saved as Draft',
+        closed: 'Closed',
+        inherit: 'Inherited',
+        trash: 'Archived',
+      };
+      showToast('Status Updated', `Job status set to ${labelMap[newStatus]}`, 'info');
+      fetchJobs();
+    } catch (err: any) {
+      showToast('Status Update Failed', err?.message || 'Failed to update job status.', 'error');
+    }
   };
 
-  const handleDeleteJob = () => {
+  const handleDeleteJob = async () => {
     if (deletingJobId) {
       const job = jobs.find((j) => j.id === deletingJobId);
-      service.deleteJob(deletingJobId);
-      showToast('Job Archived', `Job vacancy "${job?.title || ''}" archived.`, 'error');
-      setDeletingJobId(null);
+      try {
+        await jobApiService.deleteJob(deletingJobId);
+        showToast('Job Archived', `Job vacancy "${job?.title || ''}" archived.`, 'error');
+        setDeletingJobId(null);
+        fetchJobs();
+      } catch (err: any) {
+        showToast('Delete Failed', err?.message || 'Failed to delete job.', 'error');
+      }
     }
   };
 
@@ -334,9 +370,19 @@ export const JobOpeningsPage: React.FC = () => {
           </p>
         </div>
 
-        <Button variant="primary" icon={<Plus size={16} />} onClick={handleOpenCreateModal}>
-          Post New Job Opening
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Button
+            variant="ghost"
+            icon={<RefreshCw size={16} className={isLoading ? 'spin' : ''} />}
+            onClick={fetchJobs}
+            title="Refresh Openings"
+          >
+            Refresh
+          </Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={handleOpenCreateModal}>
+            Post New Job Opening
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -421,13 +467,13 @@ export const JobOpeningsPage: React.FC = () => {
         maxWidth="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsFormModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsFormModalOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button variant="secondary" onClick={() => handleSaveJob('draft')}>
+            <Button variant="secondary" onClick={() => handleSaveJob('draft')} isLoading={isSaving} disabled={isSaving}>
               Save as Draft
             </Button>
-            <Button variant="primary" onClick={() => handleSaveJob('publish')}>
+            <Button variant="primary" onClick={() => handleSaveJob('publish')} isLoading={isSaving} disabled={isSaving}>
               {editingJob ? 'Update Job' : 'Publish Job'}
             </Button>
           </>

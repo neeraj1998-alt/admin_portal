@@ -18,10 +18,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check initial authentication state
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setIsLoading(false);
+    let isMounted = true;
+    const initAuth = async () => {
+      try {
+        const verifiedUser = await authService.verifySession();
+        if (isMounted) {
+          setUser(verifiedUser);
+        }
+      } catch {
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials) => {

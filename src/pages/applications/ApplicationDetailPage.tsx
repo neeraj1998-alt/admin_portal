@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
-import { useMockData } from '../../services/mockDataService';
+import { Skeleton } from '../../components/common/Skeleton';
+import { applicationApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import { ResumeViewerModal } from '../../components/common/ResumeViewerModal';
 import {
@@ -16,21 +17,110 @@ import {
   FileText,
   Download,
   Send,
-  Award,
 } from 'lucide-react';
-import type { ApplicationStageStatus, ResumeAttachment } from '../../types/database';
+import type { ApplicationStageStatus, ResumeAttachment, JobApplication, ApplicationNote } from '../../types/database';
 
 export const ApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { applications, candidates, resumes, service } = useMockData();
   const { showToast } = useToast();
 
+  const [application, setApplication] = useState<JobApplication | null>(null);
+  const [documents, setDocuments] = useState<ResumeAttachment[]>([]);
+  const [localNotes, setLocalNotes] = useState<ApplicationNote[]>([]);
   const [newNoteText, setNewNoteText] = useState('');
   const [selectedResume, setSelectedResume] = useState<ResumeAttachment | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const applicationId = Number(id);
-  const application = applications.find((a) => a.id === applicationId);
+
+  const fetchApplicationDetails = useCallback(async () => {
+    if (!applicationId || isNaN(applicationId)) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const [appData, docsData] = await Promise.allSettled([
+        applicationApiService.getApplicationById(applicationId),
+        applicationApiService.getApplicationDocuments(applicationId),
+      ]);
+
+      if (appData.status === 'fulfilled') {
+        setApplication(appData.value);
+        if (appData.value.notes) {
+          setLocalNotes(appData.value.notes);
+        }
+      } else {
+        // Not found or error
+        setApplication(null);
+      }
+
+      if (docsData.status === 'fulfilled') {
+        setDocuments(docsData.value);
+      }
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch application details.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applicationId, showToast]);
+
+  useEffect(() => {
+    fetchApplicationDetails();
+  }, [fetchApplicationDetails]);
+
+  const stages: ApplicationStageStatus[] = ['New', 'Under Review', 'Shortlisted', 'Selected'];
+
+  const handleStageChange = async (newStage: ApplicationStageStatus) => {
+    if (!application) return;
+
+    try {
+      const updated = await applicationApiService.updateApplicationStatus(application.id, newStage);
+      setApplication((prev) => (prev ? { ...prev, status: updated.status } : prev));
+      showToast('Stage Transitioned', `Application moved to "${newStage}" stage.`, 'success');
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to update stage.', 'error');
+    }
+  };
+
+  const handleAddNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNoteText.trim() || !application) return;
+
+    const newNote: ApplicationNote = {
+      id: Date.now(),
+      authorName: 'Recruiter Admin',
+      date: new Date().toISOString().split('T')[0],
+      text: newNoteText.trim(),
+    };
+
+    setLocalNotes((prev) => [newNote, ...prev]);
+    setNewNoteText('');
+    showToast('Note Added', 'Recruiter note saved to application record.', 'success');
+  };
+
+  const resume = documents.length > 0 ? documents[0] : null;
+
+  const handleDownloadResume = () => {
+    if (!resume) return;
+    window.open(resume.fileUrl, '_blank');
+    showToast('Download Started', `Downloading ${resume.fileName}`, 'success');
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' }}>
+        <Skeleton width="200px" height="36px" />
+        <Skeleton width="100%" height="220px" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          <Skeleton width="100%" height="300px" />
+          <Skeleton width="100%" height="300px" />
+        </div>
+      </div>
+    );
+  }
 
   if (!application) {
     return (
@@ -47,41 +137,6 @@ export const ApplicationDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  const candidate = candidates.find((c) => c.id === application.candidateId);
-  const resume = resumes.find((r) => r.id === application.resumeAttachmentId);
-
-  const stages: ApplicationStageStatus[] = ['New', 'Under Review', 'Shortlisted', 'Selected'];
-
-  const handleStageChange = (newStage: ApplicationStageStatus) => {
-    service.updateApplicationStatus(application.id, newStage);
-    showToast('Stage Transitioned', `Application moved to "${newStage}" stage.`, 'success');
-  };
-
-  const handleAddNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newNoteText.trim()) return;
-
-    service.addApplicationNote(application.id, newNoteText.trim());
-    setNewNoteText('');
-    showToast('Note Added', 'Recruiter note saved to application record.', 'success');
-  };
-
-  const handleDownloadResume = () => {
-    if (!resume) return;
-    const content = resume.contentSnippet || `Resume Document: ${resume.fileName}\nCandidate: ${resume.candidateName}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = resume.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showToast('Download Started', `Downloading ${resume.fileName}`, 'success');
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -280,14 +335,7 @@ export const ApplicationDetailPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <MapPin size={16} style={{ color: 'var(--text-muted)' }} />
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                  {candidate?.location || 'Mumbai, India'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Award size={16} style={{ color: 'var(--text-muted)' }} />
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                  Experience: {candidate?.experience || '4 Years'}
+                  Mumbai, India
                 </span>
               </div>
 
@@ -298,31 +346,6 @@ export const ApplicationDetailPage: React.FC = () => {
                 </span>
               </div>
             </div>
-
-            {candidate && candidate.skills.length > 0 && (
-              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-                <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  Candidate Skills
-                </h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {candidate.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      style={{
-                        padding: '3px 8px',
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </Card>
 
           {/* Cover Letter Card */}
@@ -365,12 +388,12 @@ export const ApplicationDetailPage: React.FC = () => {
 
               {/* Notes List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-                {(!application.notes || application.notes.length === 0) ? (
+                {(!localNotes || localNotes.length === 0) ? (
                   <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center', padding: '12px' }}>
                     No recruiter notes recorded yet.
                   </p>
                 ) : (
-                  application.notes.map((note) => (
+                  localNotes.map((note) => (
                     <div
                       key={note.id}
                       style={{

@@ -1,5 +1,24 @@
 const documentService = require("../services/document.service");
 
+const getAllDocuments = async (req, res) => {
+  try {
+    const documents = await documentService.getAllDocuments();
+    res.status(200).json({
+      success: true,
+      data: documents
+    });
+  } catch (error) {
+    if (!error.statusCode || error.statusCode === 500) {
+      console.error("Error fetching all documents:", error);
+    }
+
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to fetch documents"
+    });
+  }
+};
+
 const getDocumentsByApplication = async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -100,6 +119,7 @@ const downloadDocument = async (req, res) => {
 };
 
 module.exports = {
+  getAllDocuments,
   getDocumentsByApplication,
   uploadDocument,
   getDocumentById,
