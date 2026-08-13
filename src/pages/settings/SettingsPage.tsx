@@ -10,6 +10,8 @@ import {
   Bell,
   Save,
   Key,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -30,6 +32,11 @@ export const SettingsPage: React.FC = () => {
     newPassword: '',
     confirmPassword: '',
   });
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [notificationForm, setNotificationForm] = useState({
     emailOnNewApplication: true,
@@ -64,7 +71,7 @@ export const SettingsPage: React.FC = () => {
     showToast('Profile Updated', 'Administrator profile details saved.', 'success');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!securityForm.currentPassword) {
       showToast('Validation Error', 'Please enter your current password.', 'error');
@@ -79,8 +86,16 @@ export const SettingsPage: React.FC = () => {
       return;
     }
 
-    setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    showToast('Password Changed', 'Security credentials updated successfully.', 'success');
+    setIsChangingPassword(true);
+    try {
+      await settingsApiService.changePassword(securityForm.currentPassword, securityForm.newPassword);
+      setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      showToast('Password Changed', 'Security credentials updated successfully. Please use your new password on next login.', 'success');
+    } catch (error: any) {
+      showToast('Error', error.message || 'Failed to change password', 'error');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleSaveNotifications = (e: React.FormEvent) => {
@@ -217,30 +232,60 @@ export const SettingsPage: React.FC = () => {
           <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px' }}>
             <Input
               label="Current Password *"
-              type="password"
+              type={showCurrentPassword ? 'text' : 'password'}
               placeholder="Enter current password"
               value={securityForm.currentPassword}
               onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  style={{ color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0 }}
+                  tabIndex={-1}
+                >
+                  {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
 
             <Input
               label="New Password *"
-              type="password"
+              type={showNewPassword ? 'text' : 'password'}
               placeholder="Enter new password (min. 6 characters)"
               value={securityForm.newPassword}
               onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{ color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0 }}
+                  tabIndex={-1}
+                >
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
 
             <Input
               label="Confirm New Password *"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm new password"
               value={securityForm.confirmPassword}
               onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
+              rightIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0 }}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '8px' }}>
-              <Button variant="primary" icon={<Key size={16} />} type="submit">
+              <Button variant="primary" icon={<Key size={16} />} type="submit" isLoading={isChangingPassword} disabled={isChangingPassword}>
                 Update Password
               </Button>
             </div>

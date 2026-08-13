@@ -433,4 +433,11 @@ export const settingsApiService = {
     localStorage.setItem('recruitment_system_settings', JSON.stringify(merged));
     return merged;
   },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return await apiClient.patch<{ message: string }>('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+  },
 };
