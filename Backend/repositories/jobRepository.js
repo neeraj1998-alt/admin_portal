@@ -1,47 +1,69 @@
 const pool = require("../config/database");
 
 /**
- * Fetch all jobs with optional filtering, search, and pagination
+ * Fetch all jobs with optional filtering, search, pagination, and total applications count
  */
 const findAllJobs = async ({ status, department, search, limit = 10, offset = 0 }) => {
-    let query = `SELECT * FROM jobs WHERE 1=1`;
+    let whereClauses = [];
     const values = [];
 
     if (status) {
         values.push(status.toUpperCase());
-        query += ` AND status = $${values.length}`;
+        whereClauses.push(`j.status = $${values.length}`);
     }
 
     if (department) {
         values.push(department);
-        query += ` AND department ILIKE $${values.length}`;
+        whereClauses.push(`j.department ILIKE $${values.length}`);
     }
 
     if (search) {
         values.push(`%${search}%`);
-        query += ` AND (title ILIKE $${values.length} OR description ILIKE $${values.length} OR skills ILIKE $${values.length})`;
+        whereClauses.push(`(j.title ILIKE $${values.length} OR j.description ILIKE $${values.length} OR j.skills ILIKE $${values.length})`);
     }
 
-    // Count total query
-    const countResult = await pool.query(query.replace("SELECT *", "SELECT COUNT(*)"), values);
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+    // Count total jobs matching filters
+    const countQuery = `SELECT COUNT(*) FROM jobs j ${whereSql}`;
+    const countResult = await pool.query(countQuery, values);
     const total = parseInt(countResult.rows[0].count, 10);
 
-    // Sorting & Pagination
+    // Fetch jobs with LEFT JOIN to get total applications count
     values.push(limit);
-    query += ` ORDER BY created_at DESC LIMIT $${values.length}`;
-    
+    const limitParam = `$${values.length}`;
     values.push(offset);
-    query += ` OFFSET $${values.length}`;
+    const offsetParam = `$${values.length}`;
+
+    const query = `
+        SELECT 
+            j.*,
+            COUNT(a.id)::int AS total_applications
+        FROM jobs j
+        LEFT JOIN applications a ON j.id = a.job_id
+        ${whereSql}
+        GROUP BY j.id
+        ORDER BY j.created_at DESC
+        LIMIT ${limitParam} OFFSET ${offsetParam}
+    `;
 
     const result = await pool.query(query, values);
     return { jobs: result.rows, total };
 };
 
 /**
- * Fetch single job by ID
+ * Fetch single job by ID with application count
  */
 const findJobById = async (id) => {
-    const query = `SELECT * FROM jobs WHERE id = $1`;
+    const query = `
+        SELECT 
+            j.*,
+            COUNT(a.id)::int AS total_applications
+        FROM jobs j
+        LEFT JOIN applications a ON j.id = a.job_id
+        WHERE j.id = $1
+        GROUP BY j.id
+    `;
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
 };
@@ -92,7 +114,7 @@ const createJob = async (jobData) => {
             salary, description, requirements, skills, application_deadline, status
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *
+        RETURNING *, 0 AS total_applications
     `;
 
     const values = [
