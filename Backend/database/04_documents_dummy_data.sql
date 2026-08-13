@@ -1,0 +1,29 @@
+INSERT INTO documents
+(
+    application_id,
+    document_type,
+    original_file_name,
+    stored_file_name,
+    file_path,
+    mime_type,
+    file_size
+)
+VALUES
+(
+    1,
+    'RESUME',
+    'Rahul_Sharma_Resume.pdf',
+    'resume_1.pdf',
+    '/uploads/resumes/resume_1.pdf',
+    'application/pdf',
+    245760
+),
+(
+    2,
+    'RESUME',
+    'Priya_Patil_Resume.pdf',
+    'resume_2.pdf',
+    '/uploads/resumes/resume_2.pdf',
+    'application/pdf',
+    198450
+);
