@@ -64,7 +64,7 @@ export const SettingsPage: React.FC = () => {
     showToast('Profile Updated', 'Administrator profile details saved.', 'success');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!securityForm.currentPassword) {
       showToast('Validation Error', 'Please enter your current password.', 'error');
@@ -79,8 +79,13 @@ export const SettingsPage: React.FC = () => {
       return;
     }
 
-    setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    showToast('Password Changed', 'Security credentials updated successfully.', 'success');
+    try {
+      await settingsApiService.changePassword(securityForm.currentPassword, securityForm.newPassword);
+      setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      showToast('Password Changed', 'Security credentials updated successfully.', 'success');
+    } catch (error: any) {
+      showToast('Error', error.message || 'Failed to change password', 'error');
+    }
   };
 
   const handleSaveNotifications = (e: React.FormEvent) => {
