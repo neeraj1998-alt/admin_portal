@@ -1,5 +1,35 @@
-// const pool = require("../config/db");
 const pool = require("../config/database");
+
+const getAllDocuments = async () => {
+  try {
+    const query = `
+      SELECT
+        d.id,
+        d.application_id,
+        d.document_type,
+        d.original_file_name,
+        d.stored_file_name,
+        d.file_path,
+        d.mime_type,
+        d.file_size,
+        d.uploaded_at,
+        a.candidate_id,
+        CONCAT(c.first_name, ' ', COALESCE(c.last_name, '')) AS candidate_name,
+        j.id AS job_id,
+        j.title AS job_title
+      FROM documents d
+      JOIN applications a ON d.application_id = a.id
+      JOIN candidates c ON a.candidate_id = c.id
+      JOIN jobs j ON a.job_id = j.id
+      ORDER BY d.id DESC
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  } catch (error) {
+    console.warn("PostgreSQL getAllDocuments fallback:", error.message);
+    return [];
+  }
+};
 
 const getDocumentsByApplicationId = async (applicationId) => {
   const query = `
@@ -85,6 +115,7 @@ const checkApplicationExists = async (applicationId) => {
 };
 
 module.exports = {
+  getAllDocuments,
   getDocumentsByApplicationId,
   createDocument,
   getDocumentById,

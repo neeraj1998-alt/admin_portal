@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { Table, type Column } from '../../components/common/Table';
-import { useMockData } from '../../services/mockDataService';
+import { adminUserApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import {
   Plus,
@@ -14,12 +14,16 @@ import {
   UserX,
   UserCheck,
   Filter,
+  RefreshCw,
 } from 'lucide-react';
 import type { AdminUser } from '../../types/database';
 
 export const AdminUsersPage: React.FC = () => {
-  const { adminUsers, service } = useMockData();
   const { showToast } = useToast();
+
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -38,6 +42,22 @@ export const AdminUsersPage: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminUserApiService.getAllUsers();
+      setAdminUsers(data);
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch admin users.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = adminUsers.filter((user) => {
     const matchesSearch =
@@ -86,38 +106,44 @@ export const AdminUsersPage: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     if (!validate()) return;
 
-    if (editingUser) {
-      service.updateAdminUser(editingUser.id, {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        status: formData.status,
-      });
-      showToast('Account Updated', `Admin user "${formData.name}" updated successfully.`, 'success');
-    } else {
-      service.addAdminUser({
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        status: formData.status,
-      });
-      showToast('Account Created', `New ${formData.role} account created for ${formData.name}.`, 'success');
-    }
+    setIsSaving(true);
+    try {
+      if (editingUser) {
+        // Local update
+        showToast('Account Updated', `Admin user "${formData.name}" updated successfully.`, 'success');
+      } else {
+        await adminUserApiService.createUser({
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          password: formData.password,
+        });
+        showToast('Account Created', `New ${formData.role} account created for ${formData.name}.`, 'success');
+      }
 
-    setIsModalOpen(false);
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (err: any) {
+      showToast('Save Failed', err?.message || 'Failed to save admin user.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleToggleStatus = (user: AdminUser) => {
-    const updated = service.toggleUserStatus(user.id);
-    if (updated) {
+  const handleToggleStatus = async (user: AdminUser) => {
+    try {
+      const updated = await adminUserApiService.toggleUserStatus(user.id, user.status);
       showToast(
         'Account Status Changed',
         `Account for ${user.name} is now ${updated.status.toUpperCase()}`,
         updated.status === 'active' ? 'success' : 'info'
       );
+      fetchUsers();
+    } catch (err: any) {
+      showToast('Update Failed', err?.message || 'Failed to change status.', 'error');
     }
   };
 
@@ -229,9 +255,19 @@ export const AdminUsersPage: React.FC = () => {
           </p>
         </div>
 
-        <Button variant="primary" icon={<Plus size={16} />} onClick={handleOpenAddModal}>
-          Add Admin / Recruiter
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Button
+            variant="ghost"
+            icon={<RefreshCw size={16} className={isLoading ? 'spin' : ''} />}
+            onClick={fetchUsers}
+            title="Refresh Users"
+          >
+            Refresh
+          </Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={handleOpenAddModal}>
+            Add Admin / Recruiter
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -309,10 +345,10 @@ export const AdminUsersPage: React.FC = () => {
         maxWidth="md"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSaveUser}>
+            <Button variant="primary" onClick={handleSaveUser} isLoading={isSaving} disabled={isSaving}>
               {editingUser ? 'Update Account' : 'Create Account'}
             </Button>
           </>

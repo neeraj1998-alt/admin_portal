@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { Table, type Column } from '../../components/common/Table';
-import { useMockData } from '../../services/mockDataService';
+import { applicationApiService, jobApiService, documentApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import { ResumeViewerModal } from '../../components/common/ResumeViewerModal';
 import {
@@ -14,19 +14,53 @@ import {
   Eye,
   FileText,
   Briefcase,
+  RefreshCw,
 } from 'lucide-react';
-import type { JobApplication, ApplicationStageStatus, ResumeAttachment } from '../../types/database';
+import type { JobApplication, ApplicationStageStatus, ResumeAttachment, JobOpening } from '../../types/database';
 
 export const JobApplicationsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { applications, jobs, resumes, service } = useMockData();
   const { showToast } = useToast();
+
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [jobs, setJobs] = useState<JobOpening[]>([]);
+  const [resumes, setResumes] = useState<ResumeAttachment[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [jobFilter, setJobFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedResume, setSelectedResume] = useState<ResumeAttachment | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [appsData, jobsData, docsData] = await Promise.allSettled([
+        applicationApiService.getApplications(),
+        jobApiService.getJobs(),
+        documentApiService.getAllDocuments(),
+      ]);
+
+      if (appsData.status === 'fulfilled') {
+        setApplications(appsData.value);
+      }
+      if (jobsData.status === 'fulfilled') {
+        setJobs(jobsData.value);
+      }
+      if (docsData.status === 'fulfilled') {
+        setResumes(docsData.value);
+      }
+    } catch (err: any) {
+      showToast('Error', err?.message || 'Failed to fetch applications.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Check state from navigation (e.g. from Jobs page or Dashboard)
   useEffect(() => {
@@ -49,9 +83,14 @@ export const JobApplicationsPage: React.FC = () => {
     return matchesSearch && matchesJob && matchesStatus;
   });
 
-  const handleStatusChange = (appId: number, candidateName: string, newStatus: ApplicationStageStatus) => {
-    service.updateApplicationStatus(appId, newStatus);
-    showToast('Application Status Updated', `Updated ${candidateName}'s status to ${newStatus}`, 'success');
+  const handleStatusChange = async (appId: number, candidateName: string, newStatus: ApplicationStageStatus) => {
+    try {
+      await applicationApiService.updateApplicationStatus(appId, newStatus);
+      showToast('Application Status Updated', `Updated ${candidateName}'s status to ${newStatus}`, 'success');
+      fetchData();
+    } catch (err: any) {
+      showToast('Status Update Failed', err?.message || 'Failed to update application status.', 'error');
+    }
   };
 
   const columns: Column<JobApplication>[] = [
@@ -186,6 +225,15 @@ export const JobApplicationsPage: React.FC = () => {
             Manage candidate applications, recruitment stages, and application records.
           </p>
         </div>
+
+        <Button
+          variant="ghost"
+          icon={<RefreshCw size={16} className={isLoading ? 'spin' : ''} />}
+          onClick={fetchData}
+          title="Refresh Applications"
+        >
+          Refresh
+        </Button>
       </div>
 
       {/* Search & Filter Bar */}

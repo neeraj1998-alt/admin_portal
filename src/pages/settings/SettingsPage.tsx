@@ -1,31 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import { useMockData } from '../../services/mockDataService';
+import { settingsApiService } from '../../services/apiService';
 import { useToast } from '../../components/common/Toast';
 import {
   User,
   Shield,
-  Building,
-  FileCheck,
   Bell,
   Save,
   Key,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { settings, service } = useMockData();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'company' | 'application' | 'notifications'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
 
-  // Form State initialized from mock settings
+  // Form State initialized from settingsApiService
   const [profileForm, setProfileForm] = useState({
-    adminName: settings.adminName,
-    adminEmail: settings.adminEmail,
-    adminPhone: settings.adminPhone,
-    adminTitle: settings.adminTitle,
+    adminName: '',
+    adminEmail: '',
+    adminPhone: '',
+    adminTitle: '',
   });
 
   const [securityForm, setSecurityForm] = useState({
@@ -34,30 +31,31 @@ export const SettingsPage: React.FC = () => {
     confirmPassword: '',
   });
 
-  const [companyForm, setCompanyForm] = useState({
-    companyName: settings.companyName,
-    contactEmail: settings.contactEmail,
-    portalTitle: settings.portalTitle,
-    currency: settings.currency,
-    defaultLocation: settings.defaultLocation,
-  });
-
-  const [applicationForm, setApplicationForm] = useState({
-    maxFileSizeMB: settings.maxFileSizeMB,
-    autoAcknowledgeEmail: settings.autoAcknowledgeEmail,
-    requireCoverLetter: settings.requireCoverLetter,
-  });
-
   const [notificationForm, setNotificationForm] = useState({
-    emailOnNewApplication: settings.emailOnNewApplication,
-    emailDailyDigest: settings.emailDailyDigest,
-    emailOnShortlist: settings.emailOnShortlist,
+    emailOnNewApplication: true,
+    emailDailyDigest: true,
+    emailOnShortlist: true,
   });
+
+  useEffect(() => {
+    const s = settingsApiService.getSettings();
+    setProfileForm({
+      adminName: s.adminName,
+      adminEmail: s.adminEmail,
+      adminPhone: s.adminPhone,
+      adminTitle: s.adminTitle,
+    });
+    setNotificationForm({
+      emailOnNewApplication: s.emailOnNewApplication,
+      emailDailyDigest: s.emailDailyDigest,
+      emailOnShortlist: s.emailOnShortlist,
+    });
+  }, []);
 
   // Action Handlers
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    service.updateSettings({
+    settingsApiService.updateSettings({
       adminName: profileForm.adminName,
       adminEmail: profileForm.adminEmail,
       adminPhone: profileForm.adminPhone,
@@ -85,31 +83,9 @@ export const SettingsPage: React.FC = () => {
     showToast('Password Changed', 'Security credentials updated successfully.', 'success');
   };
 
-  const handleSaveCompany = (e: React.FormEvent) => {
-    e.preventDefault();
-    service.updateSettings({
-      companyName: companyForm.companyName,
-      contactEmail: companyForm.contactEmail,
-      portalTitle: companyForm.portalTitle,
-      currency: companyForm.currency,
-      defaultLocation: companyForm.defaultLocation,
-    });
-    showToast('Company Info Saved', 'Recruitment portal company settings updated.', 'success');
-  };
-
-  const handleSaveApplicationSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    service.updateSettings({
-      maxFileSizeMB: Number(applicationForm.maxFileSizeMB),
-      autoAcknowledgeEmail: applicationForm.autoAcknowledgeEmail,
-      requireCoverLetter: applicationForm.requireCoverLetter,
-    });
-    showToast('Application Preferences Saved', 'Job application submission parameters updated.', 'success');
-  };
-
   const handleSaveNotifications = (e: React.FormEvent) => {
     e.preventDefault();
-    service.updateSettings({
+    settingsApiService.updateSettings({
       emailOnNewApplication: notificationForm.emailOnNewApplication,
       emailDailyDigest: notificationForm.emailDailyDigest,
       emailOnShortlist: notificationForm.emailOnShortlist,
@@ -125,7 +101,7 @@ export const SettingsPage: React.FC = () => {
           Profile and Settings
         </h1>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
-          Manage administrator profile, recruitment preferences, security parameters, and notification alerts.
+          Manage administrator profile, security parameters, and notification alerts.
         </p>
       </div>
 
@@ -174,42 +150,6 @@ export const SettingsPage: React.FC = () => {
           }}
         >
           <Shield size={16} /> Password & Security
-        </button>
-
-        <button
-          onClick={() => setActiveTab('company')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 16px',
-            fontSize: '0.875rem',
-            fontWeight: activeTab === 'company' ? 600 : 500,
-            color: activeTab === 'company' ? 'var(--brand-primary)' : 'var(--text-secondary)',
-            borderBottom: activeTab === 'company' ? '2px solid var(--brand-primary)' : '2px solid transparent',
-            marginBottom: '-5px',
-            transition: 'var(--transition-fast)',
-          }}
-        >
-          <Building size={16} /> Company & Portal Info
-        </button>
-
-        <button
-          onClick={() => setActiveTab('application')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 16px',
-            fontSize: '0.875rem',
-            fontWeight: activeTab === 'application' ? 600 : 500,
-            color: activeTab === 'application' ? 'var(--brand-primary)' : 'var(--text-secondary)',
-            borderBottom: activeTab === 'application' ? '2px solid var(--brand-primary)' : '2px solid transparent',
-            marginBottom: '-5px',
-            transition: 'var(--transition-fast)',
-          }}
-        >
-          <FileCheck size={16} /> Application Preferences
         </button>
 
         <button
@@ -308,127 +248,7 @@ export const SettingsPage: React.FC = () => {
         </Card>
       )}
 
-      {/* 3. COMPANY & PORTAL INFO TAB */}
-      {activeTab === 'company' && (
-        <Card title="Company & Recruitment Portal Parameters" subtitle="Configure organization details and portal branding.">
-          <form onSubmit={handleSaveCompany} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px' }}>
-            <Input
-              label="Company Name"
-              value={companyForm.companyName}
-              onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
-            />
-
-            <Input
-              label="HR Inquiry Email"
-              type="email"
-              value={companyForm.contactEmail}
-              onChange={(e) => setCompanyForm({ ...companyForm, contactEmail: e.target.value })}
-            />
-
-            <Input
-              label="Portal Display Title"
-              value={companyForm.portalTitle}
-              onChange={(e) => setCompanyForm({ ...companyForm, portalTitle: e.target.value })}
-            />
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-              <Input
-                label="Currency Symbol / Code"
-                value={companyForm.currency}
-                onChange={(e) => setCompanyForm({ ...companyForm, currency: e.target.value })}
-              />
-
-              <Input
-                label="Default Location"
-                value={companyForm.defaultLocation}
-                onChange={(e) => setCompanyForm({ ...companyForm, defaultLocation: e.target.value })}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '8px' }}>
-              <Button variant="primary" icon={<Save size={16} />} type="submit">
-                Save Company Info
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* 4. APPLICATION PREFERENCES TAB */}
-      {activeTab === 'application' && (
-        <Card title="Candidate Job Application Rules" subtitle="Set file attachment limits and submission behavior.">
-          <form onSubmit={handleSaveApplicationSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px' }}>
-            <Input
-              label="Maximum Resume File Size (MB)"
-              type="number"
-              value={applicationForm.maxFileSizeMB}
-              onChange={(e) => setApplicationForm({ ...applicationForm, maxFileSizeMB: Number(e.target.value) })}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                backgroundColor: '#f8fafc',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
-                  Auto-acknowledge Application Email
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Send automated receipt email to candidates upon submitting application.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={applicationForm.autoAcknowledgeEmail}
-                onChange={(e) => setApplicationForm({ ...applicationForm, autoAcknowledgeEmail: e.target.checked })}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-              />
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                backgroundColor: '#f8fafc',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
-                  Mandatory Cover Letter
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Require candidates to attach or write a cover letter when applying.
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={applicationForm.requireCoverLetter}
-                onChange={(e) => setApplicationForm({ ...applicationForm, requireCoverLetter: e.target.checked })}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '8px' }}>
-              <Button variant="primary" icon={<Save size={16} />} type="submit">
-                Save Application Rules
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* 5. NOTIFICATIONS TAB */}
+      {/* 3. NOTIFICATIONS TAB */}
       {activeTab === 'notifications' && (
         <Card title="Recruiter Email Notifications" subtitle="Configure email alerts for candidate application milestones.">
           <form onSubmit={handleSaveNotifications} style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}>

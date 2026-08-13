@@ -5,6 +5,10 @@ const { isValidId } = require("../utils/validators");
 
 const UPLOADS_DIR = path.resolve(__dirname, "../uploads/documents");
 
+const getAllDocuments = async () => {
+  return await documentRepository.getAllDocuments();
+};
+
 const getDocumentsByApplicationId = async (applicationId) => {
   if (!isValidId(applicationId)) {
     const error = new Error("Invalid application ID");
@@ -122,6 +126,7 @@ const getDocumentFileForDownload = async (id) => {
 };
 
 module.exports = {
+  getAllDocuments,
   getDocumentsByApplicationId,
   createDocument,
   getDocumentById,

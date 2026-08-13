@@ -1,61 +1,93 @@
 import type { User, LoginCredentials } from '../types/auth';
+import { apiClient, setAuthToken, removeAuthToken, getAuthToken } from './apiClient';
 
 const STORAGE_KEY = 'recruitment_admin_auth';
 
-// Default mock admin user for UI demonstration
-const MOCK_ADMIN_USER: User = {
-  id: 1,
-  name: 'Admin User',
-  email: 'admin@mhtechin.com',
-  role: 'Administrator',
+const adaptUser = (rawUser: any): User => {
+  let role: User['role'] = 'Administrator';
+  if (String(rawUser.role).toUpperCase().includes('RECRUITER')) {
+    role = 'Recruiter';
+  } else if (String(rawUser.role).toUpperCase().includes('HR')) {
+    role = 'HR Manager';
+  }
+
+  const name =
+    rawUser.name ||
+    `${rawUser.first_name || ''} ${rawUser.last_name || ''}`.trim() ||
+    String(rawUser.email || '').split('@')[0];
+
+  return {
+    id: Number(rawUser.id || 1),
+    name,
+    email: rawUser.email,
+    role,
+    avatarUrl: rawUser.avatarUrl,
+  };
 };
 
-/**
- * Mock Authentication Service
- * NOTE: This is a placeholder auth abstraction. It does not perform actual DB password validation
- * until backend auth endpoints are provided by the team.
- */
 export const authService = {
   /**
-   * Mock login call simulating network delay & basic validation
+   * Real backend login call
    */
   async login(credentials: LoginCredentials): Promise<User> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!credentials.email || !credentials.password) {
-          reject(new Error('Please provide both email and password.'));
-          return;
-        }
+    if (!credentials.email || !credentials.password) {
+      throw new Error('Please provide both email and password.');
+    }
 
-        if (!credentials.email.includes('@')) {
-          reject(new Error('Please enter a valid email address.'));
-          return;
-        }
+    try {
+      const response = await apiClient.post<any>('/auth/login', {
+        email: credentials.email.trim(),
+        password: credentials.password,
+      });
 
-        if (credentials.password.length < 4) {
-          reject(new Error('Password must be at least 4 characters long.'));
-          return;
-        }
+      const token = response?.token;
+      const rawUser = response?.user || response;
 
-        const user: User = {
-          ...MOCK_ADMIN_USER,
-          email: credentials.email,
-          name: credentials.email.split('@')[0].replace('.', ' ').toUpperCase(),
-        };
+      if (!token) {
+        throw new Error('Authentication succeeded but no token was provided.');
+      }
 
-        if (credentials.rememberMe) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        } else {
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        }
+      const user = adaptUser(rawUser);
 
-        resolve(user);
-      }, 700);
-    });
+      // Persist auth token
+      setAuthToken(token, credentials.rememberMe !== false);
+
+      // Persist user object
+      const storage = credentials.rememberMe !== false ? localStorage : sessionStorage;
+      storage.setItem(STORAGE_KEY, JSON.stringify({ ...user, token }));
+
+      return user;
+    } catch (err: any) {
+      const msg = err?.message || 'Login failed. Please check your credentials.';
+      throw new Error(msg);
+    }
   },
 
   /**
-   * Check for existing session token or user in storage
+   * Verify and fetch current authenticated user from backend or local storage
+   */
+  async verifySession(): Promise<User | null> {
+    try {
+      const response = await apiClient.get<any>('/auth/me');
+      if (response) {
+        const user = adaptUser(response);
+        const currentToken = getAuthToken();
+        const fullUser = { ...user, token: currentToken };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fullUser));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fullUser));
+        return user;
+      }
+    } catch (err: any) {
+      if (err?.statusCode === 401) {
+        removeAuthToken();
+        return null;
+      }
+    }
+    return this.getCurrentUser();
+  },
+
+  /**
+   * Synchronously get cached user
    */
   getCurrentUser(): User | null {
     const localData = localStorage.getItem(STORAGE_KEY);
@@ -83,7 +115,7 @@ export const authService = {
    * Clear session / logout
    */
   logout(): void {
-    localStorage.removeItem(STORAGE_KEY);
-    sessionStorage.removeItem(STORAGE_KEY);
-  }
+    removeAuthToken();
+  },
 };
+
