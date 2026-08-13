@@ -435,23 +435,9 @@ export const settingsApiService = {
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getStoredToken()}`,
-      },
-      body: JSON.stringify({
-        currentPassword,
-        newPassword,
-      }),
+    return apiClient.post<{ message: string }>('/auth/change-password', {
+      currentPassword,
+      newPassword,
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to change password');
-    }
-
-    return response.json();
   },
 };
