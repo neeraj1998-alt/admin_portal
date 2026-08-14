@@ -3,7 +3,7 @@ const pool = require("../config/database");
 /**
  * Fetch all jobs with optional filtering, search, pagination, and total applications count
  */
-const findAllJobs = async ({ status, department, search, limit = 10, offset = 0 }) => {
+const findAllJobs = async ({ status, department, search, limit = 100, offset = 0 }) => {
     let whereClauses = [];
     const values = [];
 

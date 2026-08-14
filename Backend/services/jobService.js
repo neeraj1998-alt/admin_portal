@@ -2,7 +2,7 @@ const jobRepository = require("../repositories/jobRepository");
 
 const getAllJobs = async (queryParams) => {
     const page = parseInt(queryParams.page, 10) || 1;
-    const limit = parseInt(queryParams.limit, 10) || 10;
+    const limit = parseInt(queryParams.limit, 10) || 100;
     const offset = (page - 1) * limit;
 
     const { jobs, total } = await jobRepository.findAllJobs({

@@ -1,7 +1,7 @@
 // const pool = require("../config/db");
 const pool = require("../config/database");
 
-const getAllApplications = async ({ search, jobId, status, startDate, endDate, limit = 10, offset = 0 }) => {
+const getAllApplications = async ({ search, jobId, status, startDate, endDate, limit = 100, offset = 0 }) => {
   let whereClauses = [];
   let queryParams = [];
   let paramIdx = 1;
