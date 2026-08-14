@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -53,7 +53,6 @@ export const ApplicationDetailPage: React.FC = () => {
           setLocalNotes(appData.value.notes);
         }
       } else {
-        // Not found or error
         setApplication(null);
       }
 
@@ -101,13 +100,29 @@ export const ApplicationDetailPage: React.FC = () => {
     showToast('Note Added', 'Recruiter note saved to application record.', 'success');
   };
 
-  const resume = documents.length > 0 ? documents[0] : null;
-
-  const handleDownloadResume = () => {
-    if (!resume) return;
-    window.open(resume.fileUrl, '_blank');
-    showToast('Download Started', `Downloading ${resume.fileName}`, 'success');
-  };
+  const resumeToView: ResumeAttachment | null = useMemo(() => {
+    if (!application) return null;
+    if (documents.length > 0) {
+      return {
+        ...documents[0],
+        candidateName: application.candidateName,
+        jobTitle: application.jobTitle,
+      };
+    }
+    return {
+      id: application.resumeAttachmentId || application.id,
+      fileName: application.resumeFileName || `${application.candidateName.replace(/\s+/g, '_')}_Resume.pdf`,
+      applicationId: application.id,
+      candidateId: application.candidateId,
+      candidateName: application.candidateName,
+      jobTitle: application.jobTitle,
+      uploadDate: application.dateSubmitted,
+      fileUrl: `http://localhost:5000/api/documents/${application.resumeAttachmentId || application.id}/download`,
+      mimeType: 'application/pdf',
+      fileSize: '245.8 KB',
+      contentSnippet: `RESUME DOCUMENT DETAILS\n-----------------------\nCandidate Name: ${application.candidateName}\nPosition Applied: ${application.jobTitle}\nCandidate Email: ${application.candidateEmail}\nCandidate Phone: ${application.candidatePhone}\nDate Submitted: ${application.dateSubmitted}\n\nPROFESSIONAL SUMMARY:\nApplicant ${application.candidateName} submitted an official candidate application for the ${application.jobTitle} position at MHTECHIN.`,
+    };
+  }, [application, documents]);
 
   if (isLoading) {
     return (
@@ -210,13 +225,13 @@ export const ApplicationDetailPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {resume && (
+            {resumeToView && (
               <>
                 <Button
                   variant="secondary"
                   size="md"
                   icon={<FileText size={16} />}
-                  onClick={() => setSelectedResume(resume)}
+                  onClick={() => setSelectedResume(resumeToView)}
                 >
                   Preview Resume
                 </Button>
@@ -224,7 +239,18 @@ export const ApplicationDetailPage: React.FC = () => {
                   variant="primary"
                   size="md"
                   icon={<Download size={16} />}
-                  onClick={handleDownloadResume}
+                  onClick={() => {
+                    if (resumeToView.fileUrl) {
+                      const link = document.createElement('a');
+                      link.href = resumeToView.fileUrl;
+                      link.setAttribute('download', resumeToView.fileName || 'Resume.pdf');
+                      link.target = '_blank';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      showToast('Download Started', `Downloading ${resumeToView.fileName}`, 'success');
+                    }
+                  }}
                 >
                   Download CV
                 </Button>

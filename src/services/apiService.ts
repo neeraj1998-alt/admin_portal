@@ -137,18 +137,22 @@ export const adaptJobApplication = (raw: any): JobApplication => {
 };
 
 export const adaptResume = (raw: any): ResumeAttachment => {
+  const candidateName = raw.candidate_name || raw.candidateName || 'Candidate';
+  const jobTitle = raw.job_title || raw.jobTitle || 'Job Opening';
+  const fileName = raw.original_file_name || raw.fileName || `${candidateName.replace(/\s+/g, '_')}_Resume.pdf`;
+
   return {
     id: Number(raw.id),
-    fileName: raw.original_file_name || raw.fileName || `Resume_${raw.id}.pdf`,
+    fileName,
     applicationId: Number(raw.application_id || raw.applicationId || 1),
     candidateId: Number(raw.candidate_id || raw.candidateId || 1),
-    candidateName: raw.candidate_name || raw.candidateName || 'Candidate',
-    jobTitle: raw.job_title || raw.jobTitle || 'Job Opening',
+    candidateName,
+    jobTitle,
     uploadDate: formatDate(raw.uploaded_at || raw.uploadDate),
     fileUrl: apiClient.getDownloadUrl(`/documents/${raw.id}/download`),
     mimeType: raw.mime_type || raw.mimeType || 'application/pdf',
     fileSize: formatFileSize(raw.file_size || raw.fileSize),
-    contentSnippet: `Document Name: ${raw.original_file_name || 'Resume'}\nApplicant: ${raw.candidate_name || 'Candidate'}\nPosition: ${raw.job_title || 'Position'}`,
+    contentSnippet: `RESUME DOCUMENT DETAILS\n-----------------------\nCandidate Name: ${candidateName}\nPosition Applied: ${jobTitle}\nFile Name: ${fileName}\nUpload Date: ${formatDate(raw.uploaded_at || raw.uploadDate)}\n\nPROFESSIONAL OVERVIEW:\nQualified candidate applying for the ${jobTitle} position.\n\nKEY COMPETENCIES:\n• Expertise relevant to ${jobTitle}\n• Technical & Operational Capabilities\n• Team Leadership & Communication Skills`,
   };
 };
 

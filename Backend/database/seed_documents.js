@@ -7,7 +7,8 @@ const candidatesData = [
   { appId: 2, name: 'Priya Patil', pos: 'Lead DevOps & Cloud Engineer', file: 'Priya_Patil_Resume.pdf', stored: 'resume_2.pdf' },
   { appId: 3, name: 'Amit Verma', pos: 'Staff Backend Engineer', file: 'Amit_Verma_Resume.pdf', stored: 'resume_3.pdf' },
   { appId: 4, name: 'Sneha Kulkarni', pos: 'Full Stack Node.js Engineer', file: 'Sneha_Kulkarni_Resume.pdf', stored: 'resume_4.pdf' },
-  { appId: 5, name: 'Vikram Malhotra', pos: 'Senior QA Automation Engineer', file: 'Vikram_Malhotra_Resume.pdf', stored: 'resume_5.pdf' },
+  { appId: 5, name: 'Neha Deshmukh', pos: 'Senior QA Automation Engineer', file: 'Neha_Deshmukh_Resume.pdf', stored: 'resume_5.pdf' },
+  { appId: 12, name: 'Shreya Salve', pos: 'Software Engineer I', file: 'Shreya_Salve_Resume.pdf', stored: 'resume_20.pdf' },
 ];
 
 async function seed() {

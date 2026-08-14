@@ -23,7 +23,19 @@ export const ResumeViewerModal: React.FC<ResumeViewerModalProps> = ({
   if (!resume) return null;
 
   const handleDownload = () => {
-    // Create a mock blob download
+    if (resume.fileUrl) {
+      const link = document.createElement('a');
+      link.href = resume.fileUrl;
+      link.setAttribute('download', resume.fileName || 'Resume.pdf');
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Download Started', `Downloading ${resume.fileName}`, 'success');
+      return;
+    }
+
+    // Fallback text download
     const content = resume.contentSnippet || `Resume Document: ${resume.fileName}\nCandidate: ${resume.candidateName}\nJob Title: ${resume.jobTitle}\nDate Uploaded: ${resume.uploadDate}`;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
